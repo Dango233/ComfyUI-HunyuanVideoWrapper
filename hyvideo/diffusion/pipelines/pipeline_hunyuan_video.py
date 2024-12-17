@@ -764,6 +764,7 @@ class HunyuanVideoPipeline(DiffusionPipeline):
                         )
 
                 # compute the previous noisy sample x_t -> x_t-1
+                denoised_latents = latents - noise_pred
                 latents = self.scheduler.step(
                     noise_pred, t, latents, **extra_step_kwargs, return_dict=False
                 )[0]
@@ -787,7 +788,7 @@ class HunyuanVideoPipeline(DiffusionPipeline):
                     if progress_bar is not None:
                         progress_bar.update()
                     if callback is not None:
-                        callback(i, latents.detach()[-1].permute(1,0,2,3), None, num_inference_steps)
+                        callback(i, denoised_latents.detach()[-1].permute(1,0,2,3), None, num_inference_steps)
                     else:
                         comfy_pbar.update(1)
 
