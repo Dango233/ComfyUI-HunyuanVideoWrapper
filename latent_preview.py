@@ -4,6 +4,7 @@ from PIL import Image
 from comfy.cli_args import args, LatentPreviewMethod
 import comfy.model_management
 import comfy.utils
+from einops import rearrange
 
 MAX_PREVIEW_RESOLUTION = args.preview_size
 
@@ -11,8 +12,8 @@ def preview_to_image(latent_image):
         latents_ubyte = (((latent_image + 1.0) / 2.0).clamp(0, 1)  # change scale from -1..1 to 0..1
                             .mul(0xFF)  # to 0..255
                             ).to(device="cpu", dtype=torch.uint8, non_blocking=comfy.model_management.device_supports_non_blocking(latent_image.device))
-
-        return Image.fromarray(latents_ubyte.numpy())
+        latents = [Image.fromarray(a_frame.numpy()) for a_frame in latents_ubyte]
+        return latents
 
 class LatentPreviewer:
     def decode_latent_to_preview(self, x0):
@@ -47,8 +48,9 @@ class Latent2RGBPreviewer(LatentPreviewer):
         self.latent_rgb_factors = self.latent_rgb_factors.to(dtype=x0.dtype, device=x0.device)
         if self.latent_rgb_factors_bias is not None:
             self.latent_rgb_factors_bias = self.latent_rgb_factors_bias.to(dtype=x0.dtype, device=x0.device)
-
-        latent_image = torch.nn.functional.linear(x0[0].permute(1, 2, 0), self.latent_rgb_factors,
+        # x0 = rearrange(x0, "b c h w -> (b h) w c" )
+        x0 = rearrange(x0, "b c h w -> b h w c" ) * 0.6
+        latent_image = torch.nn.functional.linear(x0, self.latent_rgb_factors,
                                                     bias=self.latent_rgb_factors_bias)
         return preview_to_image(latent_image)
 
@@ -68,7 +70,7 @@ def get_previewer():
 
 def prepare_callback(model, steps, x0_output_dict=None):
     preview_format = "JPEG"
-    if preview_format not in ["JPEG", "PNG"]:
+    if preview_format not in ["JPEG", "PNG", "GIF"]:
         preview_format = "JPEG"
 
     previewer = get_previewer()

@@ -289,13 +289,13 @@ class HunyuanVideoPipeline(DiffusionPipeline):
             latents = latents.to(device)
             timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, denoise_strength, device)
             latent_timestep = timesteps[:1]
-            frames_needed = noise.shape[1]
-            current_frames = latents.shape[1]
+            frames_needed = noise.shape[2]
+            current_frames = latents.shape[2]
             
             if frames_needed > current_frames:
                 repeat_factor = frames_needed - current_frames
-                additional_frame = torch.randn((latents.size(0), repeat_factor, latents.size(2), latents.size(3), latents.size(4)), dtype=latents.dtype, device=latents.device)
-                latents = torch.cat((additional_frame, latents), dim=1)
+                additional_frame = torch.randn((latents.size(0), latents.size(1), repeat_factor, latents.size(3), latents.size(4)), dtype=latents.dtype, device=latents.device)
+                latents = torch.cat((additional_frame, latents), dim=2)
                 self.additional_frames = repeat_factor
             elif frames_needed < current_frames:
                 latents = latents[:, :frames_needed, :, :, :]

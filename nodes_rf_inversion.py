@@ -225,6 +225,7 @@ class HyVideoInverseSampler:
                         stg_mode=None,
                         return_dict=True,
                     )["x"]
+                denoised_latent = latent_model_input - noise_pred
                 sigma = t / 1000.0
                 sigma_prev = t_prev / 1000.0
                 latents = latents.to(torch.float32)
@@ -248,7 +249,7 @@ class HyVideoInverseSampler:
                 
                 progress_bar.update()
                 if callback is not None:
-                        callback(idx, latents.detach()[-1].permute(1,0,2,3), None, steps)
+                        callback(idx, denoised_latent.detach()[-1].permute(1,0,2,3), None, steps)
                 else:
                     comfy_pbar.update(1)
                   
@@ -425,6 +426,7 @@ class HyVideoReSampler:
                         stg_mode=None,
                         return_dict=True,
                     )["x"]
+                    denoised_latent = latent_model_input - noise_pred
                     sigma = t / 1000.0
                     sigma_prev = t_prev / 1000.0
                     noise_pred = noise_pred.to(torch.float32)
@@ -450,7 +452,7 @@ class HyVideoReSampler:
 
                     progress_bar.update()
                     if callback is not None:
-                        callback(idx, latents.detach()[-1].permute(1,0,2,3), None, steps)
+                        callback(idx, denoised_latent.detach()[-1].permute(1,0,2,3), None, steps)
                     else:
                         comfy_pbar.update(1)
 
