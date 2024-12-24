@@ -133,6 +133,10 @@ class HyVideoInverseSampler:
                 offload_txt_in = model["block_swap_args"]["offload_txt_in"],
                 offload_img_in = model["block_swap_args"]["offload_img_in"],
             )
+        elif model["auto_cpu_offload"]:
+            for name, param in transformer.named_parameters():
+                if "single" not in name and "double" not in name:
+                    param.data = param.data.to(device)
         elif model["manual_offloading"]:
             transformer.to(device)
 
@@ -345,6 +349,10 @@ class HyVideoReSampler:
                 offload_txt_in = model["block_swap_args"]["offload_txt_in"],
                 offload_img_in = model["block_swap_args"]["offload_img_in"],
             )
+        elif model["auto_cpu_offload"]:
+            for name, param in transformer.named_parameters():
+                if "single" not in name and "double" not in name:
+                    param.data = param.data.to(device)
         elif model["manual_offloading"]:
             transformer.to(device)
 
@@ -541,6 +549,10 @@ class HyVideoPromptMixSampler:
                 offload_txt_in = model["block_swap_args"]["offload_txt_in"],
                 offload_img_in = model["block_swap_args"]["offload_img_in"],
             )
+        elif model["auto_cpu_offload"]:
+            for name, param in transformer.named_parameters():
+                if "single" not in name and "double" not in name:
+                    param.data = param.data.to(device)
         elif model["manual_offloading"]:
             transformer.to(device)
 

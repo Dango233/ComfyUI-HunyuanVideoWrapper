@@ -224,6 +224,7 @@ class HyVideoModelLoader:
                 "compile_args": ("COMPILEARGS", ),
                 "block_swap_args": ("BLOCKSWAPARGS", ),
                 "lora": ("HYVIDLORA", {"default": None}),
+                "auto_cpu_offload": ("BOOLEAN", {"default": False, "tooltip": "Enable auto offloading for reduced VRAM usage, implementation from DiffSynth-Studio, slightly different from block swapping and uses even less VRAM, but can be slower as you can't define how much VRAM to use"}),
             }
         }
 
@@ -233,7 +234,7 @@ class HyVideoModelLoader:
     CATEGORY = "HunyuanVideoWrapper"
 
     def loadmodel(self, model, base_precision, load_device,  quantization,
-                  compile_args=None, attention_mode="sdpa", block_swap_args=None, lora=None):
+                  compile_args=None, attention_mode="sdpa", block_swap_args=None, lora=None, auto_cpu_offload=False):
         transformer = None
         #mm.unload_all_models()
         mm.soft_empty_cache()
@@ -339,6 +340,9 @@ class HyVideoModelLoader:
                 from .hyvideo.modules.fp8_optimization import convert_fp8_linear
                 convert_fp8_linear(patcher.model.diffusion_model, base_dtype)
 
+            if auto_cpu_offload:
+                transformer.enable_auto_offload(dtype=dtype, device=device)
+
             #compile
             if compile_args is not None:
                 torch._dynamo.config.cache_size_limit = compile_args["dynamo_cache_size_limit"]
@@ -440,6 +444,7 @@ class HyVideoModelLoader:
         patcher.model["manual_offloading"] = manual_offloading
         patcher.model["quantization"] = "disabled"
         patcher.model["block_swap_args"] = block_swap_args
+        patcher.model["auto_cpu_offload"] = auto_cpu_offload
 
         return (patcher,)
 
@@ -1117,7 +1122,10 @@ class HyVideoSampler:
                 offload_txt_in = model["block_swap_args"]["offload_txt_in"],
                 offload_img_in = model["block_swap_args"]["offload_img_in"],
             )
-
+        elif model["auto_cpu_offload"]:
+            for name, param in transformer.named_parameters():
+                if "single" not in name and "double" not in name:
+                    param.data = param.data.to(device)
         elif model["manual_offloading"]:
             transformer.to(device)
 
